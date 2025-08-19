@@ -32,25 +32,25 @@ def train_complete_physics_model():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     config = {
         'num_epochs': 500,
-        'batch_size': 128,
-        'learning_rate': 1e-3,  # Very conservative
+        'batch_size': 32,
+        'learning_rate': 1e-3, 
         'save_interval': 50,
         'data_file': '01_Da_0.100.mat',
         'model_save_path': 'complete_physics_model_Da_0.100_checkpoint.pth',
-        'physics_weight_initial': 0.01,  # Start very small
-        'physics_weight_max': 0.1,       # Maximum contribution
+        'physics_weight_initial': 0.01, 
+        'physics_weight_max': 0.1,    
         'data_weight': 1.0,
         'warmup_epochs': 20,
-        'parameter_weight': 0.01,
+        'parameter_weight': 0.001,
         'fraction_train': 0.7,  # 70% for training
         'fraction_val': 0.2,    # 20% for validation
         'fraction_test': 0.1,   # 10% for testing
         # Dynamic weight adjustment parameters
         'dynamic_weights': True,          # Enable dynamic weight adjustment
         'weight_adjust_interval': 10,     # Adjust weights every N batches
-        'weight_adjust_warmup': 250,      # Start adjusting after N epochs
+        'weight_adjust_warmup': 150,      # Start adjusting after N epochs
         'min_ratio_threshold': 0.2,       # Minimum ratio before adjustment (5x difference)
-        'max_boost_factor': 10.0,         # Maximum factor to boost any weight
+        'max_boost_factor': 11.0,         # Maximum factor to boost any weight
     }
     
     print(f"Device: {device}")
