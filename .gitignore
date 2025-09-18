@@ -50,4 +50,22 @@ logs/
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp
+
+# Project-specific ignores
+data/
+
+# Result directories
+training_results_*/
+water_*/
+water_ra_training_all_results/
+water_ft2_da_segmented_results/
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+
+# Shell/Batch scripts
+*.bat
+*.sh

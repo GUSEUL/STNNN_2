@@ -136,12 +136,13 @@ class MatDataset(Dataset):
     - θ: (time, 32, 32) cell-centered
     """
     
-    def __init__(self, matfile, device='cpu'):
+    def __init__(self, matfile, device='cpu', time_slice_end=None):
         """Initialize dataset from .mat file.
         
         Args:
             matfile (str): Path to .mat data file
             device (str): Device to store tensors on
+            time_slice_end (float, optional): If provided, slices the data to this end time. Defaults to None.
         """
         # Load MATLAB file with v7.3 support
         d = load_mat_file(matfile)
@@ -150,24 +151,60 @@ class MatDataset(Dataset):
         self.nanofluid_props = extract_nanofluid_properties(d)
         
         # Extract data arrays - Time is already the first dimension
-        u_raw = d['ustore']   # (22320, 32, 31)  staggered in x
-        v_raw = d['vstore']   # (22320, 31, 32)  staggered in y  
-        p_raw = d['pstore']   # (22320, 32, 32)  cell-centered
-        t_raw = d['tstore']   # (22320, 32, 32)  cell-centered
+        u_raw = d['ustore']   # (time, 32, 31)  staggered in x
+        v_raw = d['vstore']   # (time, 31, 32)  staggered in y  
+        p_raw = d['pstore']   # (time, 32, 32)  cell-centered
+        t_raw = d['tstore']   # (time, 32, 32)  cell-centered
+
+        # Store physical parameters with safe extraction
+        def safe_extract_param(key, default_value):
+            """Safely extract parameter with default fallback."""
+            try:
+                return float(d[key].squeeze()) if key in d else default_value
+            except:
+                return default_value
         
-        print(f"Loaded data shapes:")
+        self.params = {
+            'Ra': safe_extract_param('Ra', 1e4),     # Rayleigh number
+            'Ha': safe_extract_param('Ha', 0.0),     # Hartmann number
+            'Pr': safe_extract_param('Pr', 0.71),    # Prandtl number
+            'Da': safe_extract_param('Da', 1e-3),    # Darcy number
+            'Q': safe_extract_param('Q', 0.0),       # Heat source/sink parameter
+            'dt': safe_extract_param('dt', 0.0001),  # Time step
+        }
+
+        # --- Time Slicing Logic ---
+        if time_slice_end is not None:
+            dt = self.params.get('dt', 0.0001)
+            num_timesteps = u_raw.shape[0]
+            time_vector = np.arange(num_timesteps) * dt
+            
+            # Find the index up to which we should keep the data
+            slice_idx = np.searchsorted(time_vector, time_slice_end, side='right')
+            
+            if slice_idx > 0:
+                print(f"\n--- Slicing data up to time ~{time_slice_end}s (index: {slice_idx}) ---")
+                u_raw = u_raw[:slice_idx]
+                v_raw = v_raw[:slice_idx]
+                p_raw = p_raw[:slice_idx]
+                t_raw = t_raw[:slice_idx]
+                print(f"New data shape (time, y, x): {u_raw.shape}")
+            else:
+                print(f"Warning: time_slice_end ({time_slice_end}) is too small. Using full dataset.")
+        
+        print(f"\nLoaded data shapes:")
         print(f"  u: {u_raw.shape} (time, y, x)")
         print(f"  v: {v_raw.shape} (time, y, x)")
         print(f"  p: {p_raw.shape} (time, y, x)")
         print(f"  t: {t_raw.shape} (time, y, x)")
         
         # Transpose from (time, y, x) to (y, x, time) for compatibility with existing code
-        u_raw = np.transpose(u_raw, (1, 2, 0))  # (22320, 32, 31) → (32, 31, 22320)
-        v_raw = np.transpose(v_raw, (1, 2, 0))  # (22320, 31, 32) → (31, 32, 22320)
-        p_raw = np.transpose(p_raw, (1, 2, 0))  # (22320, 32, 32) → (32, 32, 22320)
-        t_raw = np.transpose(t_raw, (1, 2, 0))  # (22320, 32, 32) → (32, 32, 22320)
+        u_raw = np.transpose(u_raw, (1, 2, 0))
+        v_raw = np.transpose(v_raw, (1, 2, 0))
+        p_raw = np.transpose(p_raw, (1, 2, 0))
+        t_raw = np.transpose(t_raw, (1, 2, 0))
         
-        print(f"After transpose to (y, x, time):")
+        print(f"\nAfter transpose to (y, x, time):")
         print(f"  u: {u_raw.shape}")
         print(f"  v: {v_raw.shape}")
         print(f"  p: {p_raw.shape}")
@@ -200,29 +237,11 @@ class MatDataset(Dataset):
         }
         
         # Grid dimensions from pressure/temperature field
-        self.ny, self.nx = self.p.shape[0], self.p.shape[1]  # 32, 32
-        self.nt = self.p.shape[2]                            # 22320
+        self.ny, self.nx = self.p.shape[0], self.p.shape[1]
+        self.nt = self.p.shape[2]
         
         # Number of usable time-steps (total - 1)
         self.T = self.nt - 1
-        
-        # Store physical parameters with safe extraction
-        def safe_extract_param(key, default_value):
-            """Safely extract parameter with default fallback."""
-            try:
-                return float(d[key].squeeze()) if key in d else default_value
-            except:
-                return default_value
-        
-        self.params = {
-            'Ra': safe_extract_param('Ra', 1e4),     # Rayleigh number
-            'Ha': safe_extract_param('Ha', 0.0),     # Hartmann number
-            'Pr': safe_extract_param('Pr', 0.71),    # Prandtl number
-            'Da': safe_extract_param('Da', 1e-3),    # Darcy number
-            'Rd': safe_extract_param('Rd', 0.5),     # Radiation parameter
-            'Q': safe_extract_param('Q', 0.0),       # Heat source/sink parameter
-            'dt': safe_extract_param('dt', 0.0001),  # Time step
-        }
         
     def __len__(self):
         """Return number of time steps available for training."""
