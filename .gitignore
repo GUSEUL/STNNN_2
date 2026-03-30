@@ -1,71 +1,9 @@
-# Python cache files
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+*
 
-# PyTorch model files (large)
-*.pth
-*.pt
+!data.py
+!models.py
+!train_and_infer_v4.py
+!train_dynamic_v4.py
+!visualize_ra_inference.py
+!visualize_ra_ha_inference.py
 
-# Large data files
-*.mat
-*.h5
-*.hdf5
-
-# Animation and image files (large)
-*.gif
-*.mp4
-*.avi
-*.mov
-complete_animations/
-complete_physics_results/
-
-# Jupyter notebook checkpoints
-.ipynb_checkpoints/
-
-# Environment files
-.env
-.venv
-env/
-venv/
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Large numpy arrays
-*.npy
-*.npz
-
-# Logs
-*.log
-logs/
-
-# Temporary files
-*.tmp
-*.temp
-
-# Project-specific ignores
-data/
-
-# Result directories
-training_results_*/
-water_*/
-water_ra_training_all_results/
-water_ft2_da_segmented_results/
-
-# Image files
-*.png
-*.jpg
-*.jpeg
-
-# Shell/Batch scripts
-*.bat
-*.sh
