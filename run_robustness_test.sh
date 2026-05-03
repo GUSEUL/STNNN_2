@@ -12,11 +12,11 @@ do
     n=${NOISE_LEVELS[$i]}
     p=${PERCENTS[$i]}
     
-    OUT_DIR="robustness_results_${p}percent_${MATERIAL}"
+    OUT_DIR="robustness_results_${p}percent_${MATERIAL}_LBFGS2"
     echo -e "\n\033[0;36m>>> Starting Batch Inference: Noise ${p}% | Material: ${MATERIAL} -> ${OUT_DIR} <<<\033[0m"
 
     # Execute python script with arguments: noise_level, output_dir, material
-    python inference_noise.py "$n" "$OUT_DIR" "$MATERIAL"
+    python inference_noise_lbfgs_2.py "$n" "$OUT_DIR" "$MATERIAL"
 
     if [ $? -ne 0 ]; then
         echo -e "\033[0;31mError occurred at ${p}% noise level with material ${MATERIAL}. Stopping.\033[0m"

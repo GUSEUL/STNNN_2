@@ -268,7 +268,9 @@ def train_model(args, model, train_loader, val_loader, device):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--base_fluid', default='EG'); parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--base_fluid', default='EG')
+    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training from')
     args = parser.parse_args(); device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     all_files = [f for f in sorted(glob.glob(os.path.join('data', args.base_fluid, "**", "*.mat"), recursive=True)) if 'phi' not in f.lower()]
@@ -281,6 +283,19 @@ def main():
         return DataLoader(ConcatDataset(ds_list), batch_size=32, shuffle=True, num_workers=4, pin_memory=True)
 
     model = DynamicMultiParamSurrogateModel(max_frames=5).to(device)
+    
+    # Resume logic
+    checkpoint_to_load = args.resume
+    if not checkpoint_to_load:
+        # Check for default checkpoint if no specific one is provided
+        default_ckpt = f'checkpoint_dynamic_best_{args.base_fluid}.pth'
+        if os.path.exists(default_ckpt):
+            checkpoint_to_load = default_ckpt
+            
+    if checkpoint_to_load and os.path.exists(checkpoint_to_load):
+        print(f"Loading checkpoint from {checkpoint_to_load}...")
+        model.load_state_dict(torch.load(checkpoint_to_load, weights_only=True))
+
     train_model(args, model, get_loader(train_f), get_loader(val_f), device)
 
 if __name__ == '__main__':

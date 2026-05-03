@@ -191,7 +191,7 @@ def save_comprehensive_visualizations(filename, gt_p, pred_p, ra_hist, ha_hist, 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     checkpoint_path = 'checkpoint_best_EG.pth'
-    noise_val = 0.01; out_dir = 'robustness_test_visuals'; mat = 'EG'
+    noise_val = 0.01; out_dir = 'robustness_test_visuals_added_noise'; mat = 'EG'
     if len(sys.argv) > 1: noise_val = float(sys.argv[1])
     if len(sys.argv) > 2: out_dir = sys.argv[2]
     if len(sys.argv) > 3: mat = sys.argv[3]

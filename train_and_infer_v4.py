@@ -699,6 +699,7 @@ def main():
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--skip_train', action='store_true')
     parser.add_argument('--inference_only', action='store_true')
+    parser.add_argument('--resume', type=str, default=None, help='Path to checkpoint to resume training from')
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -731,13 +732,28 @@ def main():
         val_loader = get_loader(val_files, shuffle=False)
         model = MultiParamSurrogateModel(hidden=256).to(device)
         
+        # Resume logic
+        checkpoint_to_load = args.resume
+        if checkpoint_to_load and os.path.exists(checkpoint_to_load):
+            print(f"Loading checkpoint from {checkpoint_to_load}...")
+            model.load_state_dict(torch.load(checkpoint_to_load, weights_only=True))
+        elif not args.resume and args.skip_train:
+            default_ckpt = f'checkpoint_best_{args.base_fluid}.pth'
+            if os.path.exists(default_ckpt):
+                print(f"Loading default checkpoint from {default_ckpt}...")
+                model.load_state_dict(torch.load(default_ckpt, weights_only=True))
+
         if not args.skip_train:
             train_model(args, model, train_loader, val_loader, device)
-        else:
-            model.load_state_dict(torch.load(f'checkpoint_best_{args.base_fluid}.pth', weights_only=True))
     else:
         model = MultiParamSurrogateModel(hidden=256).to(device)
-        model.load_state_dict(torch.load(f'checkpoint_best_{args.base_fluid}.pth', weights_only=True))
+        checkpoint_to_load = args.resume or f'checkpoint_best_{args.base_fluid}.pth'
+        if os.path.exists(checkpoint_to_load):
+            print(f"Loading checkpoint for inference from {checkpoint_to_load}...")
+            model.load_state_dict(torch.load(checkpoint_to_load, weights_only=True))
+        else:
+            print(f"Error: No checkpoint found at {checkpoint_to_load}")
+            return
 
     model.eval()
     print("\nStarting Ultra-Precision Inference on Test Set...")
